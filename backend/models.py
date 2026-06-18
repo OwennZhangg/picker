@@ -34,4 +34,10 @@ class User(Base):
     display_name = Column(String, nullable=False)
     avatar_url = Column(String, nullable=True)
 
-    
+
+class GroupMember(Base):
+    __tablename__ = "group_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    group_id = Column(Integer, ForeignKey("groups.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)

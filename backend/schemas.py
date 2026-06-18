@@ -11,6 +11,7 @@ class CourtResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
+
 class GroupCreate(BaseModel):
     court_id: str
     host_name: str
@@ -19,7 +20,7 @@ class GroupCreate(BaseModel):
     skill_level: str
     tags: list[str] = []
 
-    
+
 class GroupResponse(BaseModel):
     id: int
     court_id: str
@@ -32,4 +33,26 @@ class GroupResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class UserCreate(BaseModel):
+    display_name: str
+    avatar_url: str | None = None
 
+
+class UserResponse(BaseModel):
+    id: int
+    display_name: str
+    avatar_url: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class GroupJoinCreate(BaseModel):
+    user_id: int
+
+
+class GroupJoinResponse(BaseModel):
+    id: int
+    group_id: int
+    user_id: int
+
+    model_config = {"from_attributes": True}

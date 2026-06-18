@@ -13,7 +13,9 @@ def get_courts(db: Session = Depends(get_db)):
     courts = db.query(Court).all()
     return courts
 
+
 # groups stuff
+
 
 @router.get("/{court_id}/groups", response_model=list[GroupResponse])
 def get_court_groups(court_id: str, db: Session = Depends(get_db)):
@@ -34,8 +36,3 @@ def get_court(court_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Court not found")
 
     return court
-
-
-
-
-
