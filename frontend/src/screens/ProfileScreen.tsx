@@ -5,7 +5,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../context/AppContext';
-import { courts } from '../data/mockCourts';
 import { RootStackParamList, TabParamList } from '../navigation/types';
 import { cardShadow, colors } from '../theme';
 
@@ -16,7 +15,6 @@ type Props = CompositeScreenProps<
 
 export function ProfileScreen({ navigation }: Props) {
   const { activeGroup, user } = useApp();
-  const activeCourt = courts.find((court) => court.id === activeGroup?.courtId);
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -42,10 +40,10 @@ export function ProfileScreen({ navigation }: Props) {
         </View>
 
         <Text style={styles.sectionLabel}>MY ACTIVE GROUP</Text>
-        {activeGroup && activeCourt ? (
+        {activeGroup ? (
           <Pressable
             onPress={() =>
-              navigation.navigate('CourtDetail', { courtId: activeCourt.id })
+              navigation.navigate('CourtDetail', { courtId: activeGroup.courtId })
             }
             style={styles.activeCard}
           >
@@ -53,7 +51,7 @@ export function ProfileScreen({ navigation }: Props) {
               <Ionicons color={colors.primary} name="people" size={22} />
             </View>
             <View style={styles.activeCopy}>
-              <Text style={styles.activeTitle}>{activeCourt.name}</Text>
+              <Text style={styles.activeTitle}>{activeGroup.courtId}</Text>
               <Text style={styles.activeMeta}>
                 {activeGroup.startsIn} · Need {activeGroup.playersNeeded} more
               </Text>

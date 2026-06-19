@@ -1,103 +1,183 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CourtArtwork } from '../components/CourtArtwork';
 import { GroupCard } from '../components/GroupCard';
-import { useApp } from '../context/AppContext';
-import { courts } from '../data/mockCourts';
+import { fetchCourt, fetchCourtGroups } from '../config/api';
 import { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme';
+import { Court, Group } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CourtDetail'>;
 
 export function CourtDetailScreen({ navigation, route }: Props) {
-  const { groups } = useApp();
-  const court = courts.find((item) => item.id === route.params.courtId) ?? courts[0];
-  const courtGroups = groups.filter((group) => group.courtId === court.id);
+  const [court, setCourt] = useState<Court | null>(null);
+  const [courtGroups, setCourtGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadCourtDetail() {
+      try {
+        const [nextCourt, nextGroups] = await Promise.all([
+          fetchCourt(route.params.courtId),
+          fetchCourtGroups(route.params.courtId),
+        ]);
+
+        setCourt(nextCourt);
+        setCourtGroups(nextGroups);
+      } catch {
+        setError('Could not load court');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadCourtDetail();
+  }, [route.params.courtId]);
+
+  if (loading) {
+    return (
+      <View style={[styles.screen, styles.center]}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (error || !court) {
+    return (
+      <View style={[styles.screen, styles.center]}>
+        <Text style={styles.errorText}>{error ?? 'Court not found'}</Text>
+        <Pressable onPress={() => navigation.goBack()} style={styles.emptyButton}>
+          <Text style={styles.emptyButtonText}>Go back</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <CourtArtwork court={court} height={320}>
-          <SafeAreaView edges={['top']} style={styles.hero}>
-            <View style={styles.heroNav}>
-              <Pressable onPress={() => navigation.goBack()} style={styles.iconButton}>
-                <Ionicons color="#FFFFFF" name="arrow-back" size={21} />
-              </Pressable>
-              <Pressable style={styles.iconButton}>
-                <Ionicons color="#FFFFFF" name="share-outline" size={20} />
-              </Pressable>
-            </View>
-            <View style={styles.heroCopy}>
-              <View style={styles.liveRow}>
-                <View style={styles.liveDot} />
-                <Text style={styles.liveText}>PLAYING NOW</Text>
-              </View>
-              <Text style={styles.title}>{court.name}</Text>
-              <View style={styles.location}>
-                <Ionicons color="rgba(255,255,255,0.75)" name="location" size={14} />
-                <Text style={styles.locationText}>
-                  {court.neighborhood} · {court.distance} away
-                </Text>
-              </View>
-            </View>
-          </SafeAreaView>
-        </CourtArtwork>
-
-        <View style={styles.body}>
-          <View style={styles.statCard}>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{court.activePlayers}</Text>
-              <Text style={styles.statLabel}>players here now</Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{courtGroups.length}</Text>
-              <Text style={styles.statLabel}>games looking</Text>
-            </View>
-          </View>
-
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>Open Groups</Text>
-              <Text style={styles.sectionSubtitle}>Jump into a game nearby.</Text>
-            </View>
-            <View style={styles.count}>
-              <Text style={styles.countText}>{courtGroups.length}</Text>
-            </View>
-          </View>
-
-          {courtGroups.length > 0 ? (
-            courtGroups.map((group) => <GroupCard group={group} key={group.id} />)
-          ) : (
-            <View style={styles.empty}>
-              <View style={styles.emptyIcon}>
-                <Ionicons color={colors.primary} name="people-outline" size={27} />
-              </View>
-              <Text style={styles.emptyTitle}>No open groups yet</Text>
-              <Text style={styles.emptyText}>Start one and invite nearby players.</Text>
-              <Pressable
-                onPress={() =>
-                  navigation.navigate('Tabs', {
-                    screen: 'Create',
-                    params: { courtId: court.id },
-                  })
-                }
-                style={styles.emptyButton}
-              >
-                <Text style={styles.emptyButtonText}>Post a game</Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
+        <CourtHero court={court} onBack={() => navigation.goBack()} />
+        <CourtBody
+          court={court}
+          groups={courtGroups}
+          onPostGame={() =>
+            navigation.navigate('Tabs', {
+              screen: 'Create',
+              params: { courtId: court.id },
+            })
+          }
+        />
       </ScrollView>
+    </View>
+  );
+}
+
+function CourtHero({ court, onBack }: { court: Court; onBack: () => void }) {
+  return (
+    <CourtArtwork court={court} height={320}>
+      <SafeAreaView edges={['top']} style={styles.hero}>
+        <View style={styles.heroNav}>
+          <Pressable onPress={onBack} style={styles.iconButton}>
+            <Ionicons color="#FFFFFF" name="arrow-back" size={21} />
+          </Pressable>
+          <Pressable style={styles.iconButton}>
+            <Ionicons color="#FFFFFF" name="share-outline" size={20} />
+          </Pressable>
+        </View>
+
+        <View style={styles.heroCopy}>
+          <View style={styles.liveRow}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>PLAYING NOW</Text>
+          </View>
+          <Text style={styles.title}>{court.name}</Text>
+          <View style={styles.location}>
+            <Ionicons color="rgba(255,255,255,0.75)" name="location" size={14} />
+            <Text style={styles.locationText}>
+              {court.neighborhood} · {court.distance} away
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    </CourtArtwork>
+  );
+}
+
+function CourtBody({
+  court,
+  groups,
+  onPostGame,
+}: {
+  court: Court;
+  groups: Group[];
+  onPostGame: () => void;
+}) {
+  return (
+    <View style={styles.body}>
+      <View style={styles.statCard}>
+        <View style={styles.stat}>
+          <Text style={styles.statValue}>{court.activePlayers}</Text>
+          <Text style={styles.statLabel}>players here now</Text>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.stat}>
+          <Text style={styles.statValue}>{groups.length}</Text>
+          <Text style={styles.statLabel}>games looking</Text>
+        </View>
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <View>
+          <Text style={styles.sectionTitle}>Open Groups</Text>
+          <Text style={styles.sectionSubtitle}>Jump into a game nearby.</Text>
+        </View>
+        <View style={styles.count}>
+          <Text style={styles.countText}>{groups.length}</Text>
+        </View>
+      </View>
+
+      {groups.length > 0 ? (
+        groups.map((group) => <GroupCard group={group} key={group.id} />)
+      ) : (
+        <EmptyGroups onPostGame={onPostGame} />
+      )}
+    </View>
+  );
+}
+
+function EmptyGroups({ onPostGame }: { onPostGame: () => void }) {
+  return (
+    <View style={styles.empty}>
+      <View style={styles.emptyIcon}>
+        <Ionicons color={colors.primary} name="people-outline" size={27} />
+      </View>
+      <Text style={styles.emptyTitle}>No open groups yet</Text>
+      <Text style={styles.emptyText}>Start one and invite nearby players.</Text>
+      <Pressable onPress={onPostGame} style={styles.emptyButton}>
+        <Text style={styles.emptyButtonText}>Post a game</Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.canvas, flex: 1 },
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
   hero: { flex: 1, paddingHorizontal: 18 },
   heroNav: {
     flexDirection: 'row',
@@ -114,7 +194,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 38,
   },
-  heroCopy: { bottom: 34, position: 'absolute' },
+  heroCopy: {
+    bottom: 34,
+    left: 18,
+    position: 'absolute',
+    right: 18,
+  },
   liveRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -218,4 +303,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   emptyButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
+  errorText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 14,
+  },
 });

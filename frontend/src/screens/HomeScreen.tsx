@@ -1,16 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
-import {
-  CompositeScreenProps,
-} from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { CompositeScreenProps } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CourtCard } from '../components/CourtCard';
-import { useApp } from '../context/AppContext';
-import { courts } from '../data/mockCourts';
+import { fetchCourts } from '../config/api';
 import { RootStackParamList, TabParamList } from '../navigation/types';
 import { colors } from '../theme';
+import { Court } from '../types';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Home'>,
@@ -18,7 +23,24 @@ type Props = CompositeScreenProps<
 >;
 
 export function HomeScreen({ navigation }: Props) {
-  const { groups } = useApp();
+  const [courts, setCourts] = useState<Court[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadCourts() {
+      try {
+        setCourts(await fetchCourts());
+      } catch {
+        setError('Could not load courts');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadCourts();
+  }, []);
+
   const totalPlayers = courts.reduce((sum, court) => sum + court.activePlayers, 0);
 
   return (
@@ -54,14 +76,20 @@ export function HomeScreen({ navigation }: Props) {
           <Ionicons color={colors.muted} name="options-outline" size={19} />
         </View>
 
-        {courts.map((court) => (
-          <CourtCard
-            court={court}
-            key={court.id}
-            onPress={() => navigation.navigate('CourtDetail', { courtId: court.id })}
-            openGroupCount={groups.filter((group) => group.courtId === court.id).length}
-          />
-        ))}
+        {loading ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : (
+          courts.map((court) => (
+            <CourtCard
+              court={court}
+              key={court.id}
+              onPress={() => navigation.navigate('CourtDetail', { courtId: court.id })}
+              openGroupCount={court.openGroups}
+            />
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -143,5 +171,11 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 1,
     marginHorizontal: 12,
+  },
+  errorText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 12,
   },
 });

@@ -4,6 +4,7 @@ import { CompositeScreenProps } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -15,11 +16,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { createGroup, fetchCourts } from '../config/api';
 import { useApp } from '../context/AppContext';
-import { courts } from '../data/mockCourts';
 import { RootStackParamList, TabParamList } from '../navigation/types';
 import { colors } from '../theme';
-import { DurationMinutes, SkillLevel } from '../types';
+import { Court, DurationMinutes, SkillLevel } from '../types';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Create'>,
@@ -44,13 +45,35 @@ const vibeOptions = [
 
 export function CreateScreen({ navigation, route }: Props) {
   const { addGroup, user } = useApp();
+  const [courts, setCourts] = useState<Court[]>([]);
   const [displayName, setDisplayName] = useState(user.displayName);
-  const [courtId, setCourtId] = useState(route.params?.courtId ?? courts[0].id);
+  const [courtId, setCourtId] = useState(route.params?.courtId ?? '');
   const [playersNeeded, setPlayersNeeded] = useState(2);
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('Intermediate');
   const [durationMinutes, setDurationMinutes] = useState<DurationMinutes>(60);
   const [tags, setTags] = useState<string[]>(['Casual']);
   const [error, setError] = useState('');
+  const [loadingCourts, setLoadingCourts] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    async function loadCourts() {
+      try {
+        const nextCourts = await fetchCourts();
+        setCourts(nextCourts);
+
+        if (!route.params?.courtId && nextCourts.length > 0) {
+          setCourtId(nextCourts[0].id);
+        }
+      } catch {
+        setError('Could not load courts.');
+      } finally {
+        setLoadingCourts(false);
+      }
+    }
+
+    loadCourts();
+  }, [route.params?.courtId]);
 
   useEffect(() => {
     if (route.params?.courtId) {
@@ -66,29 +89,40 @@ export function CreateScreen({ navigation, route }: Props) {
     );
   };
 
-  const submit = () => {
+  const submit = async () => {
     const hostName = displayName.trim();
     if (!hostName) {
       setError('Add your display name to post a game.');
       return;
     }
 
-    const createdAt = new Date();
-    addGroup({
-      id: `local-${createdAt.getTime()}`,
-      courtId,
-      hostName,
-      playersNeeded,
-      skillLevel,
-      startsIn: 'Starting now',
-      durationMinutes,
-      tags,
-      createdAt: createdAt.toISOString(),
-      expiresAt: new Date(
-        createdAt.getTime() + durationMinutes * 60 * 1000,
-      ).toISOString(),
-    });
-    navigation.navigate('CourtDetail', { courtId });
+    if (!courtId) {
+      setError('Choose a court to post a game.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError('');
+      const group = await createGroup({
+        courtId,
+        hostName,
+        playersNeeded,
+        skillLevel,
+        durationMinutes,
+        tags,
+      });
+
+      addGroup({
+        ...group,
+        courtId,
+      });
+      navigation.navigate('CourtDetail', { courtId });
+    } catch {
+      setError('Could not post game.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -128,31 +162,39 @@ export function CreateScreen({ navigation, route }: Props) {
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <FieldLabel number="2" text="Choose a court" />
-            <View style={styles.stack}>
-              {courts.map((court) => {
-                const selected = court.id === courtId;
-                return (
-                  <Pressable
-                    key={court.id}
-                    onPress={() => setCourtId(court.id)}
-                    style={[styles.courtOption, selected && styles.courtSelected]}
-                  >
-                    <View style={[styles.radio, selected && styles.radioSelected]}>
-                      {selected ? <View style={styles.radioDot} /> : null}
-                    </View>
-                    <View style={styles.courtCopy}>
-                      <Text style={styles.courtName}>{court.name}</Text>
-                      <Text style={styles.courtMeta}>
-                        {court.distance} · {court.activePlayers} playing now
-                      </Text>
-                    </View>
-                    {selected ? (
-                      <Ionicons color={colors.primary} name="checkmark-circle" size={21} />
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
+            {loadingCourts ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <View style={styles.stack}>
+                {courts.map((court) => {
+                  const selected = court.id === courtId;
+                  return (
+                    <Pressable
+                      key={court.id}
+                      onPress={() => setCourtId(court.id)}
+                      style={[styles.courtOption, selected && styles.courtSelected]}
+                    >
+                      <View style={[styles.radio, selected && styles.radioSelected]}>
+                        {selected ? <View style={styles.radioDot} /> : null}
+                      </View>
+                      <View style={styles.courtCopy}>
+                        <Text style={styles.courtName}>{court.name}</Text>
+                        <Text style={styles.courtMeta}>
+                          {court.distance} · {court.activePlayers} playing now
+                        </Text>
+                      </View>
+                      {selected ? (
+                        <Ionicons
+                          color={colors.primary}
+                          name="checkmark-circle"
+                          size={21}
+                        />
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
 
             <FieldLabel number="3" text="Players needed" />
             <View style={styles.optionRow}>
@@ -213,7 +255,8 @@ export function CreateScreen({ navigation, route }: Props) {
             </View>
 
             <PrimaryButton
-              label={`Post Game · Need ${playersNeeded}`}
+              disabled={submitting}
+              label={submitting ? 'Posting...' : `Post Game · Need ${playersNeeded}`}
               onPress={submit}
               style={styles.submit}
             />

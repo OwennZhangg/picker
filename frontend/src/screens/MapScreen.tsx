@@ -2,15 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { TagChip } from '../components/TagChip';
-import { useApp } from '../context/AppContext';
-import { courts } from '../data/mockCourts';
+import { fetchCourts } from '../config/api';
 import { RootStackParamList, TabParamList } from '../navigation/types';
 import { cardShadow, colors } from '../theme';
+import { Court } from '../types';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Map'>,
@@ -18,13 +18,45 @@ type Props = CompositeScreenProps<
 >;
 
 export function MapScreen({ navigation }: Props) {
-  const { groups } = useApp();
-  const [selectedCourtId, setSelectedCourtId] = useState(courts[0].id);
+  const [courts, setCourts] = useState<Court[]>([]);
+  const [selectedCourtId, setSelectedCourtId] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadCourts() {
+      try {
+        const nextCourts = await fetchCourts();
+        setCourts(nextCourts);
+        setSelectedCourtId(nextCourts[0]?.id ?? '');
+      } catch {
+        setError('Could not load courts');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadCourts();
+  }, []);
+
   const selectedCourt =
     courts.find((court) => court.id === selectedCourtId) ?? courts[0];
-  const openGroups = groups.filter(
-    (group) => group.courtId === selectedCourt.id,
-  ).length;
+
+  if (loading) {
+    return (
+      <SafeAreaView edges={['top']} style={[styles.safeArea, styles.center]}>
+        <ActivityIndicator color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !selectedCourt) {
+    return (
+      <SafeAreaView edges={['top']} style={[styles.safeArea, styles.center]}>
+        <Text style={styles.errorText}>{error ?? 'No courts found'}</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -64,10 +96,6 @@ export function MapScreen({ navigation }: Props) {
 
         {courts.map((court) => {
           const selected = court.id === selectedCourt.id;
-          const groupCount = groups.filter(
-            (group) => group.courtId === court.id,
-          ).length;
-
           return (
             <Pressable
               accessibilityLabel={`${court.name}, ${court.activePlayers} players`}
@@ -89,7 +117,7 @@ export function MapScreen({ navigation }: Props) {
               <View style={styles.markerBadge}>
                 <Text style={styles.markerBadgeText}>{court.activePlayers}</Text>
               </View>
-              {groupCount > 0 ? <View style={styles.liveDot} /> : null}
+              {court.openGroups > 0 ? <View style={styles.liveDot} /> : null}
             </Pressable>
           );
         })}
@@ -118,8 +146,9 @@ export function MapScreen({ navigation }: Props) {
         <View style={styles.groupRow}>
           <Ionicons color={colors.primary} name="people" size={17} />
           <Text style={styles.groupText}>
-            {openGroups}{' '}
-            {openGroups === 1 ? 'group is' : 'groups are'} looking for players
+            {selectedCourt.openGroups}{' '}
+            {selectedCourt.openGroups === 1 ? 'group is' : 'groups are'} looking
+            for players
           </Text>
         </View>
 
@@ -147,6 +176,16 @@ const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: colors.canvas,
     flex: 1,
+  },
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  errorText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '700',
   },
   header: {
     alignItems: 'center',

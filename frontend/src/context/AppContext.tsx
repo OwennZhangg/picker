@@ -5,7 +5,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { mockGroups } from '../data/mockGroups';
 import { Group, User } from '../types';
 
 type AppContextValue = {
@@ -20,7 +19,7 @@ type AppContextValue = {
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: PropsWithChildren) {
-  const [groups, setGroups] = useState<Group[]>(mockGroups);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [joinedGroupIds, setJoinedGroupIds] = useState<string[]>([]);
   const [activeGroupId, setActiveGroupId] = useState<string>();
   const user = { id: 'local-user', displayName: 'Owen' };
