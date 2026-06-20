@@ -39,7 +39,7 @@ export function GroupCard({ group }: { group: Group }) {
       <PrimaryButton
         disabled={joined}
         label={joined ? 'Joined!' : 'Join Group'}
-        onPress={() => joinGroup(group.id)}
+        onPress={() => joinGroup(group)}
         style={styles.button}
       />
     </View>

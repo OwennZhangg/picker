@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Platform } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
+import { useApp } from '../context/AppContext';
 import { CourtDetailScreen } from '../screens/CourtDetailScreen';
 import { CreateScreen } from '../screens/CreateScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { MapScreen } from '../screens/MapScreen';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { colors } from '../theme';
 import { RootStackParamList, TabParamList } from './types';
@@ -48,10 +50,35 @@ function Tabs() {
 }
 
 export function AppNavigator() {
+  const { loadingUser, user } = useApp();
+
+  if (loadingUser) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Tabs" component={Tabs} />
-      <Stack.Screen name="CourtDetail" component={CourtDetailScreen} />
+      {user ? (
+        <>
+          <Stack.Screen name="Tabs" component={Tabs} />
+          <Stack.Screen name="CourtDetail" component={CourtDetailScreen} />
+        </>
+      ) : (
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+      )}
     </Stack.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  loading: {
+    alignItems: 'center',
+    backgroundColor: colors.canvas,
+    flex: 1,
+    justifyContent: 'center',
+  },
+});

@@ -15,6 +15,7 @@ type Props = CompositeScreenProps<
 
 export function ProfileScreen({ navigation }: Props) {
   const { activeGroup, user } = useApp();
+  const displayName = user?.displayName ?? 'Owen';
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -30,12 +31,12 @@ export function ProfileScreen({ navigation }: Props) {
           <View style={styles.avatarRing}>
             <View style={styles.avatar}>
               <Text style={styles.initials}>
-                {user.displayName.slice(0, 2).toUpperCase()}
+                {displayName.slice(0, 2).toUpperCase()}
               </Text>
             </View>
             <View style={styles.online} />
           </View>
-          <Text style={styles.name}>{user.displayName}</Text>
+          <Text style={styles.name}>{displayName}</Text>
           <Text style={styles.home}>Langley, BC</Text>
         </View>
 

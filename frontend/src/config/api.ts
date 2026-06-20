@@ -1,4 +1,4 @@
-import { Court, DurationMinutes, Group, SkillLevel } from '../types';
+import { Court, DurationMinutes, Group, SkillLevel, User} from '../types';
 
 // Use your Mac's WiFi IP here when testing on a real phone.
 export const API_URL = 'http://10.0.0.232:8000';
@@ -140,4 +140,43 @@ export async function createGroup(input: CreateGroupInput): Promise<Group> {
     ...mapGroup(group),
     durationMinutes: input.durationMinutes,
   };
+}
+
+type ApiUser = {
+  id: number;
+  display_name: string;
+  avatar_url: string | null;
+};
+
+function mapUser(apiUser: ApiUser): User {
+  return {
+    id: String(apiUser.id),
+    displayName: apiUser.display_name,
+  };
+}
+
+export async function createUser(displayName: string): Promise<User> {
+  const user = await request<ApiUser>('/users', {
+    method: 'POST',
+    body: JSON.stringify({
+      display_name: displayName,
+      avatar_url: null,
+    }),
+  });
+
+  return mapUser(user);
+}
+
+export async function fetchUser(userId: string): Promise<User> {
+  const user = await request<ApiUser>(`/users/${userId}`);
+  return mapUser(user);
+}
+
+export async function joinGroup(groupId: string, userId: string): Promise<void> {
+  await request(`/groups/${groupId}/join`, {
+    method: 'POST',
+    body: JSON.stringify({
+      user_id: Number(userId),
+    }),
+  });
 }

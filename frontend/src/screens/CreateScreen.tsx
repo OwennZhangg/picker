@@ -46,7 +46,7 @@ const vibeOptions = [
 export function CreateScreen({ navigation, route }: Props) {
   const { addGroup, user } = useApp();
   const [courts, setCourts] = useState<Court[]>([]);
-  const [displayName, setDisplayName] = useState(user.displayName);
+  const [displayName, setDisplayName] = useState(user?.displayName ?? 'Owen');
   const [courtId, setCourtId] = useState(route.params?.courtId ?? '');
   const [playersNeeded, setPlayersNeeded] = useState(2);
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('Intermediate');
