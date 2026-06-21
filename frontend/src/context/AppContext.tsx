@@ -15,6 +15,7 @@ import {
 import { Group, User } from '../types';
 
 const USER_ID_STORAGE_KEY = 'picker_user_id';
+const ACTIVE_GROUP_STORAGE_KEY = 'picker_active_group';
 
 type AppContextValue = {
   groups: Group[];
@@ -40,13 +41,21 @@ export function AppProvider({ children }: PropsWithChildren) {
     async function loadUser() {
       try {
         const savedUserId = await AsyncStorage.getItem(USER_ID_STORAGE_KEY);
+        const savedActiveGroup = await AsyncStorage.getItem(ACTIVE_GROUP_STORAGE_KEY);
 
         if (savedUserId) {
           const savedUser = await fetchUser(savedUserId);
           setUser(savedUser);
         }
+
+        if (savedActiveGroup) {
+          const parsedActiveGroup = JSON.parse(savedActiveGroup);
+          setActiveGroup(parsedActiveGroup);
+          setJoinedGroupIds([parsedActiveGroup.id]);
+        }
       } catch {
         await AsyncStorage.removeItem(USER_ID_STORAGE_KEY);
+        await AsyncStorage.removeItem(ACTIVE_GROUP_STORAGE_KEY);
       } finally {
         setLoadingUser(false);
       }
@@ -65,6 +74,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       addGroup: (group) => {
         setGroups((current) => [group, ...current]);
         setActiveGroup(group);
+        AsyncStorage.setItem(ACTIVE_GROUP_STORAGE_KEY, JSON.stringify(group));
       },
       createProfile: async (displayName) => {
         const newUser = await createUser(displayName);
@@ -78,10 +88,9 @@ export function AppProvider({ children }: PropsWithChildren) {
 
         await joinGroupRequest(group.id, user.id);
 
-        setJoinedGroupIds((current) =>
-          current.includes(group.id) ? current : [...current, group.id],
-        );
+        setJoinedGroupIds([group.id]);
         setActiveGroup(group);
+        await AsyncStorage.setItem(ACTIVE_GROUP_STORAGE_KEY, JSON.stringify(group));
       },
     }),
     [activeGroup, groups, joinedGroupIds, loadingUser, user],

@@ -7,8 +7,9 @@ import { PrimaryButton } from './PrimaryButton';
 import { TagChip } from './TagChip';
 
 export function GroupCard({ group }: { group: Group }) {
-  const { joinedGroupIds, joinGroup } = useApp();
-  const joined = joinedGroupIds.includes(group.id);
+  const { activeGroup, joinedGroupIds, joinGroup } = useApp();
+  const joined = activeGroup?.id === group.id || joinedGroupIds.includes(group.id);
+  const blocked = Boolean(activeGroup && activeGroup.id !== group.id);
 
   return (
     <View style={styles.card}>
@@ -37,8 +38,8 @@ export function GroupCard({ group }: { group: Group }) {
         {group.tags.map((tag) => <TagChip key={tag} label={tag} />)}
       </View>
       <PrimaryButton
-        disabled={joined}
-        label={joined ? 'Joined!' : 'Join Group'}
+        disabled={joined || blocked}
+        label={joined ? 'Joined!' : blocked ? 'Already in a group' : 'Join Group'}
         onPress={() => joinGroup(group)}
         style={styles.button}
       />

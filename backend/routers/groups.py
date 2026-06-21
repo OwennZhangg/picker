@@ -47,6 +47,35 @@ def join_group(
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
+    existing_member = (
+        db.query(GroupMember)
+        .filter(
+            GroupMember.group_id == group_id,
+            GroupMember.user_id == join_data.user_id,
+        )
+        .first()
+    )
+
+    if existing_member is not None:
+        return existing_member
+
+    active_member = (
+        db.query(GroupMember)
+        .filter(GroupMember.user_id == join_data.user_id)
+        .first()
+    )
+
+    if active_member is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="User already has an active group",
+        )
+    
+    if group.players_needed <= 0:
+        raise HTTPException(status_code=400, detail="Group is already full")
+    
+    group.players_needed -=1
+
     group_member = GroupMember(
         group_id=group_id,
         user_id=join_data.user_id,

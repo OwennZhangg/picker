@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import { CompositeScreenProps } from '@react-navigation/native';
+import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -27,19 +27,23 @@ export function HomeScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadCourts() {
-      try {
-        setCourts(await fetchCourts());
-      } catch {
-        setError('Could not load courts');
-      } finally {
-        setLoading(false);
-      }
+  const loadCourts = useCallback(async () => {
+    try {
+      setError(null);
+      setCourts(await fetchCourts());
+    } catch {
+      setError('Could not load courts');
+    } finally {
+      setLoading(false);
     }
-
-    loadCourts();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      loadCourts();
+    }, [loadCourts]),
+  );
 
   const totalPlayers = courts.reduce((sum, court) => sum + court.activePlayers, 0);
 
