@@ -6,7 +6,12 @@ import { cardShadow, colors } from '../theme';
 import { PrimaryButton } from './PrimaryButton';
 import { TagChip } from './TagChip';
 
-export function GroupCard({ group }: { group: Group }) {
+type Props = {
+  group: Group;
+  onJoined?: () => void;
+};
+
+export function GroupCard({ group, onJoined }: Props) {
   const { activeGroup, joinedGroupIds, joinGroup } = useApp();
   const joined = activeGroup?.id === group.id || joinedGroupIds.includes(group.id);
   const blocked = Boolean(activeGroup && activeGroup.id !== group.id);
@@ -40,7 +45,10 @@ export function GroupCard({ group }: { group: Group }) {
       <PrimaryButton
         disabled={joined || blocked}
         label={joined ? 'Joined!' : blocked ? 'Already in a group' : 'Join Group'}
-        onPress={() => joinGroup(group)}
+        onPress={async () => {
+          await joinGroup(group);
+          onJoined?.();
+        }}
         style={styles.button}
       />
     </View>

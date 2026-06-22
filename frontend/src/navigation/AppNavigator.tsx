@@ -6,9 +6,10 @@ import { useApp } from '../context/AppContext';
 import { CourtDetailScreen } from '../screens/CourtDetailScreen';
 import { CreateScreen } from '../screens/CreateScreen';
 import { HomeScreen } from '../screens/HomeScreen';
-import { MapScreen } from '../screens/MapScreen';
+import { PlayScreen } from '../screens/Play';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { GroupDetail } from '../screens/GroupDetail';
 import { colors } from '../theme';
 import { RootStackParamList, TabParamList } from './types';
 
@@ -33,7 +34,7 @@ function Tabs() {
         tabBarIcon: ({ color, focused, size }) => {
           const icons = {
             Home: focused ? 'home' : 'home-outline',
-            Map: focused ? 'map' : 'map-outline',
+            Play: focused ? 'tennisball' : 'tennisball-outline',
             Create: focused ? 'add-circle' : 'add-circle-outline',
             Profile: focused ? 'person' : 'person-outline',
           } as const;
@@ -42,7 +43,7 @@ function Tabs() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Map" component={MapScreen} />
+      <Tab.Screen name="Play" component={PlayScreen} />
       <Tab.Screen name="Create" component={CreateScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
@@ -66,6 +67,7 @@ export function AppNavigator() {
         <>
           <Stack.Screen name="Tabs" component={Tabs} />
           <Stack.Screen name="CourtDetail" component={CourtDetailScreen} />
+          <Stack.Screen name="GroupDetail" component={GroupDetail} />
         </>
       ) : (
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />

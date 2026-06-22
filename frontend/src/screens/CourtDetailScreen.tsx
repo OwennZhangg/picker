@@ -67,10 +67,16 @@ export function CourtDetailScreen({ navigation, route }: Props) {
   return (
     <View style={styles.screen}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <CourtHero court={court} onBack={() => navigation.goBack()} />
+        <CourtHero court={court} onBack={() => navigation.navigate("Tabs", {screen: 'Home'})} />
         <CourtBody
           court={court}
           groups={courtGroups}
+          onOpenGroup={(group) =>
+            navigation.navigate('GroupDetail', {
+              groupId: group.id,
+              courtId: court.id,
+            })
+          }
           onPostGame={() =>
             navigation.navigate('Tabs', {
               screen: 'Create',
@@ -117,10 +123,12 @@ function CourtHero({ court, onBack }: { court: Court; onBack: () => void }) {
 function CourtBody({
   court,
   groups,
+  onOpenGroup,
   onPostGame,
 }: {
   court: Court;
   groups: Group[];
+  onOpenGroup: (group: Group) => void;
   onPostGame: () => void;
 }) {
   return (
@@ -148,7 +156,13 @@ function CourtBody({
       </View>
 
       {groups.length > 0 ? (
-        groups.map((group) => <GroupCard group={group} key={group.id} />)
+        groups.map((group) => (
+          <GroupCard
+            group={group}
+            key={group.id}
+            onJoined={() => onOpenGroup(group)}
+          />
+        ))
       ) : (
         <EmptyGroups onPostGame={onPostGame} />
       )}

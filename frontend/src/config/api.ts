@@ -172,9 +172,23 @@ export async function fetchUser(userId: string): Promise<User> {
   return mapUser(user);
 }
 
+export async function fetchActiveGroup(userId: string): Promise<Group | null> {
+  const group = await request<ApiGroup | null>(`/users/${userId}/active-group`);
+  return group ? mapGroup(group) : null;
+}
+
 export async function joinGroup(groupId: string, userId: string): Promise<void> {
   await request(`/groups/${groupId}/join`, {
     method: 'POST',
+    body: JSON.stringify({
+      user_id: Number(userId),
+    }),
+  });
+}
+
+export async function leaveGroup(groupId: string, userId: string): Promise<void> {
+  await request(`/groups/${groupId}/join`, {
+    method: 'DELETE',
     body: JSON.stringify({
       user_id: Number(userId),
     }),

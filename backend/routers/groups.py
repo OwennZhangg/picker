@@ -86,3 +86,32 @@ def join_group(
     db.refresh(group_member)
 
     return group_member
+
+
+@router.delete("/{group_id}/join")
+def leave_group(
+    group_id: int,
+    join_data: GroupJoinCreate,
+    db: Session = Depends(get_db),
+):
+    group_member = (
+        db.query(GroupMember)
+        .filter(
+            GroupMember.group_id == group_id,
+            GroupMember.user_id == join_data.user_id,
+        )
+        .first()
+    )
+
+    if group_member is None:
+        raise HTTPException(status_code=404, detail="Group membership not found")
+
+    group = db.query(Group).filter(Group.id == group_id).first()
+
+    if group is not None:
+        group.players_needed += 1
+
+    db.delete(group_member)
+    db.commit()
+
+    return {"message": "Left group"}

@@ -2,7 +2,7 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 
 export type TabParamList = {
   Home: undefined;
-  Map: undefined;
+  Play: undefined;
   Create: { courtId?: string } | undefined;
   Profile: undefined;
 };
@@ -10,5 +10,6 @@ export type TabParamList = {
 export type RootStackParamList = {
   Onboarding: undefined;
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
-  CourtDetail: { courtId: string };
+  CourtDetail: { courtId: string;};
+  GroupDetail: { groupId: string; courtId: string };
 };
