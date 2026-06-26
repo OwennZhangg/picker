@@ -250,4 +250,4 @@ Run with: `python seed.py`
 - Image uploads
 - Group expiry logic
 - Deployment / hosting
-- Map tab backend (coordinates)
+- Map tab backend (coordinates)s
